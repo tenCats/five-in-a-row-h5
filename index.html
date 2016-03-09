@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>五子棋</title>
+</head>
+<style>
+#chessboard {
+  background: url(img/chessboard.jpg) no-repeat;
+  height: 960px;
+  width: 960px;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+aside {
+  position: fixed;
+  left: 980px;
+  right: 10px;
+
+  background-color: white;
+  border: 1px solid black;
+  padding: 10px;
+}
+aside ul li {
+  margin: 0px 40px 40px 0px;
+}
+aside ul {
+  list-style: none;
+}
+@media screen and (max-width: 1180px) {
+  #chessboard {
+    height: 1060px;
+  }
+  aside {
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    height: 60px;
+    width: 100%;
+  }
+
+  aside ul li {
+    display: inline-block;
+  }
+}
+#chessmanColor {
+  height: 40px;
+  width: 40px;
+  display: inline-block;
+  vertical-align: middle;
+}
+.blackChess {
+  background: url(img/black.gif);
+}
+.whiteChess {
+  background: url(img/white.gif);
+}
+.info {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  text-align: center;
+  z-index: 1;
+  padding: 5px;
+  padding-left: 10px;
+  font-size: 1.2em;
+
+  opacity: 0;
+  -webkit-transition: all 0.5s;
+  -o-transition: all 0.5s;
+  transition: all 0.5s;
+}
+
+.warning {
+  background-color: rgb(244, 82, 101);
+  color: white;
+  opacity: 1;
+}
+.sign {
+  background-color: rgb(244, 208, 82);
+  color: white;
+  opacity: 1;
+}
+.reminding {
+  background-color: rgb(55, 231, 131);
+  color: white;
+  opacity: 1;
+}
+
+</style>
+<body>
+  <div id="alerts" class="info">
+  </div>
+  <div id="chessboard">
+  </div>
+  <aside>
+    <!-- <div>
+      下一子：<div id="chessmanColor" class="blackChess"></div>
+    </div>
+    <div class="">
+      坐标：
+    </div> -->
+    <ul>
+      <li><em><small>规则：输入坐标或单击棋<br>盘下子，拖走棋子悔棋</small></em></li>
+      <li>下一子：<img id="chessmanColor" src="img/black.gif"></li>
+      <li>输入：<input type="text" id="input" placeholder="如1,1"> </li>
+      <li>您刚才在<mark id="lastPos">(x, y)</mark>落子</li>
+    </ul>
+  </aside>
+</body>
+<script>
+
+var colorNow = 0;
+var colorArray = ['black', 'white'];
+
+window.onload = function () {
+  var chessboardDiv = document.querySelector("#chessboard");
+  var input = document.querySelector("#input");
+
+  chessboardDiv.onclick = chessboardHandler;
+  input.onkeypress = inputHandler;
+}
+
+function chessboardHandler(e) {
+  var scrollX = document.documentElement.scrollLeft || document.body.scrollLeft;
+  var scrollY = document.documentElement.scrollTop || document.body.scrollTop;
+  var cx = e.pageX || e.clientX + scrollX;
+  var cy = e.pageY || e.clientY + scrollY;
+
+  //计算出坐标  从1开始哦~
+  var x = Math.floor(cx/48+0.5);
+  var y = Math.floor(cy/48+0.5);
+
+  addChessman(x,y);
+}
+
+function inputHandler(e) {
+  if(e.keyCode == 13) {
+    var pos = e.target.value.match(/\d+,\d+/);
+    if(pos) {
+      var x = parseInt(pos[0].split(',')[0]);
+      var y = parseInt(pos[0].split(',')[1]);
+
+      addChessman(x, y);
+    }else {
+      dealAlerts('warning',"坐标格式错误！");
+      e.target.value = '';
+    }
+  }
+}
+
+function deleteSelf(e) {
+  var dom = e.target;
+  dom.parentNode.removeChild(dom);
+
+  dealAlerts('reminding', '成功移除棋子！');
+  updateColornow();
+}
+
+function addChessman(x,y) {
+  if(x>19 || y>19 || x<1 || y<1) {
+    dealAlerts('warning',"坐标数值错误！");
+    return;
+  }
+  if(document.querySelector('#x'+x+'-y'+y)){
+    dealAlerts('sign', '这个位置已经有棋子了！');
+    return;
+  }
+
+  var chessboardDiv = document.querySelector("#chessboard");
+  var newElement = document.createElement('img');
+  newElement.src = 'img/'+colorArray[colorNow]+'.gif';
+  newElement.id = 'x'+x+'-y'+y;
+  newElement.draggable = true;
+  newElement.ondragend = deleteSelf;
+  newElement.setAttribute('style', 'position: absolute; left:'+(x*48-20)+'px; top:'+(y*48-20)+'px;');
+  chessboardDiv.appendChild(newElement);
+
+  updateCoordinate(x,y);
+  updateColornow();
+}
+
+function updateColornow() {
+  colorNow = colorNow ? 0 : 1;
+  var colorImg = document.querySelector('#chessmanColor');
+  colorImg.src = 'img/'+colorArray[colorNow]+'.gif';
+}
+
+function updateCoordinate(x,y) {
+  var mark = document.querySelector("#lastPos");
+  mark.innerHTML = '('+x+','+y+')';
+}
+
+function dealAlerts(type, info) {
+  var div = document.querySelector('#alerts');
+  div.innerHTML = info;
+  div.classList.add(type);
+  setTimeout(function () {
+    div.classList.remove(type);
+  },3000)
+}
+
+</script>
+
+</html>
