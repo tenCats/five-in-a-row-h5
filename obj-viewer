@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Three.js Test</title>
+    <meta charset="utf-8">
+</head>
+<style>
+body {
+        margin: 0px;
+    }
+.out-wp {
+    position: relative;
+    width: 80vmax;
+    height: 80vmax;
+}
+.threejs {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    border: 1px CornflowerBlue solid;
+}
+
+.threejs canvas {
+    position: absolute;
+    left: 0; top: 0;
+    z-index: -100;
+}
+
+.threejs > div {
+    pointer-events: none;
+}
+
+.utag {
+    position: relative;
+    font-size: 2em;
+    display: block;
+    padding: .5em .8em;
+    background: #333;
+    color: white;
+    border-radius: 3px;
+}
+
+.utag:before {
+    content:"";
+    position: absolute;
+    left: calc(50% - .4em);
+    top: 100%;
+    width: 0;
+    height: 0;
+    border-right: .4em solid transparent;
+    border-top: .4em solid #333;
+    border-left: .4em solid transparent;
+}
+
+.loader {
+    position: absolute;
+    top: calc(50% - 5em);
+    left: calc(50% - 5em);
+    font-size: 10px;
+    position: relative;
+    text-indent: -9999em;
+    border-top: 1.1em solid rgba(255, 255, 255, 0.2);
+    border-right: 1.1em solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1.1em solid rgba(255, 255, 255, 0.2);
+    border-left: 1.1em solid #ffffff;
+    -webkit-transform: translateZ(0);
+    -ms-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-animation: load 1.1s infinite linear;
+    animation: load 1.1s infinite linear;
+}
+.loader,
+.loader:after {
+    border-radius: 50%;
+    width: 10em;
+    height: 10em;
+}
+@-webkit-keyframes load {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@keyframes load {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
+.scale-ctrl {
+    position: absolute;
+    width: 300px;
+    height: 36px;
+    z-index: 10;
+    left: calc(50% - 150px);
+    bottom: 75px;
+
+    background: #FFFFFF;
+    box-shadow: 0 1px 2px 0px rgba(0,0,0,.15);
+}
+.scale-ctrl .bar {
+    width: 200px; height: 4px;
+    margin: 16px auto;
+    overflow: hidden;
+    background: #B3B3B3;
+}
+.scale-ctrl .bar .fill {
+    width: 300px;
+    height: 10px;
+    margin-left: 0px;
+    background: #EBEBEB;
+}
+.scale-ctrl .slider {
+    position: absolute;
+    width: 10px; height: 16px;
+    left: 45px;
+    top: 10px;
+    background: #B3B3B3;
+}
+.scale-ctrl .hot-spot {
+    position: absolute;
+    z-index: 12;
+    width: 200px; height: 36px;
+    left: 50px; top: 0px;
+}
+.scale-ctrl .btn {
+    position: absolute;
+    top: 0px;
+    left: 16px;
+    width: 20px;
+    height: 36px;
+}
+.scale-ctrl .add {
+    left: 268px;
+}
+.scale-ctrl .btn .btn-hori-bar,
+.scale-ctrl .btn .btn-vert-bar {
+    position: absolute;
+    background: #B3B3B3;
+}
+.scale-ctrl .btn .btn-hori-bar {
+    width: 12px;
+    height: 2px;
+    top: 17px;
+    left: 4px;
+}
+.scale-ctrl .btn .btn-vert-bar {
+    width: 2px;
+    height: 12px;
+    top: 12px;
+    left: 9px;
+}
+</style>
+<body>
+    <div class="out-wp">
+        <div class="threejs"></div>
+        <div class="loader"></div>
+        <div class="scale-ctrl">
+            <div class="bar">
+                <div class="fill"></div>
+            </div>
+            <div class="slider"></div>
+        </div>
+        <div class="hot-spot"></div>
+        <div class="btn add">
+            <div class="btn-vert-bar"></div>
+            <div class="btn-hori-bar"></div>
+        </div>
+        <div class="btn minus">
+            <div class="btn-hori-bar"></div>
+        </div>
+    </div>
+
+
+    <script src="../build/jquery.2.2.1.js"></script>
+    <script src="../build/three.min.js"></script>
+    <script src="js/loaders/MTLLoader.js"></script>
+    <script src="js/loaders/OBJLoader.js"></script>
+    <script src="js/controls/OrbitControls.js"></script>
+    <script src="js/renderers/CSS3DRenderer.js"></script>
+
+    <script type="text/javascript">
+
+
+
+    function KObjLoader ($container, obj) {
+        $container.html('<div class="threejs"></div>'+
+                        '<div class="loader"></div>' +
+                        '<div class="scale-ctrl">' +
+                            '<div class="bar">' +
+                                '<div class="fill"></div>' +
+                            '</div>' +
+                            '<div class="slider"></div>' +
+                            '<div class="hot-spot"></div>' +
+                            '<div class="btn add"><div class="btn-vert-bar"></div><div class="btn-hori-bar"></div></div>' +
+                            '<div class="btn minus"><div class="btn-hori-bar"></div></div>' +
+                        '</div>');
+
+        var G_scale = 1,
+            G_min_dist = 20,
+            G_max_dist = 200,
+            G_ctrl_bar_l = 200,
+            G_space_size = 100,
+            G_init_ratio = 0.5;
+
+        var $loader = $container.find('.loader'),
+            $scaleCtrl = $container.find('.scale-ctrl'),
+            $parent = $container.find('.threejs'),
+            objLoader = new THREE.OBJLoader(),
+            texLoader = new THREE.TextureLoader(),
+            scene = new THREE.Scene(),
+            scene2 = new THREE.Scene(),
+            renderer = new THREE.WebGLRenderer(),
+            renderer2 = new THREE.CSS3DRenderer(),
+            camera,
+            light,
+            controls,
+            raycaster = new THREE.Raycaster(),
+
+            group = new THREE.Group(),
+
+            mouse = new THREE.Vector2(),
+            initMouse,
+            mouseDownTime;
+
+        var wpWidth = $parent.width(),
+            wpHeight = $parent.height(),
+            hoverId = undefined,
+            chosenId = undefined,
+            isScaleCtrl = false,
+            cameraDistPersent = 0.5;
+
+        var objects = obj.objects,
+            textureUrls = [],
+            textures = {},
+            materials = {},
+            initColor = {},
+            groupNames = {};
+
+        $.each(objects, function (index, val) {
+            if (val.textureUrl) {
+                textureUrls.push(val.textureUrl);
+            }
+        });
+
+        $loader.show();
+
+
+        camera = new THREE.PerspectiveCamera( 45, 1, 1, 5000);
+        camera.position.set(20, 20, G_space_size);
+        camera.lookAt(0,0,0);
+
+        light = new THREE.AmbientLight( 0xffffff, 0.8 );
+        scene.add( light );
+        light = new THREE.PointLight( 0xffffff, 0.1 );
+        light.position.set(0,0,G_space_size);
+        light.distance = G_space_size*2;
+        scene.add( light );
+        light = new THREE.PointLight( 0xffffff, 0.1 );
+        light.position.set(0,0, -G_space_size);
+        light.distance = G_space_size*2;
+        scene.add( light );
+
+        renderer.setPixelRatio( window.devicePixelRatio );
+        $parent.append( renderer.domElement );
+        renderer.setClearColor( 0xf5f6f7 );
+        renderer.setSize(wpWidth, wpHeight);
+
+        renderer2.domElement.style.position = 'absolute';
+        renderer2.domElement.style.top = 0;
+        $parent.append( renderer2.domElement );
+        renderer2.setSize(wpWidth, wpHeight);
+
+        controls = new THREE.OrbitControls( camera, $parent[0]);
+        controls.enablePan = false;
+        controls.minDistance = G_min_dist;
+        controls.maxDistance = G_max_dist;
+        controls.addEventListener('change', function (e) {
+            _setScaleCtrl();
+        })
+
+        $scaleCtrl
+        .on('mousedown', '.hot-spot', function(event) {
+            event.preventDefault();
+            isScaleCtrl = true;
+        })
+        .on('mouseup', '.hot-spot', function(event) {
+            isScaleCtrl = false;
+        })
+        .on('mouseout', '.hot-spot', function(event) {
+            isScaleCtrl = false;
+        })
+        .on('mousein', '.hot-spot', function(event) {
+            event.preventDefault();
+            isScaleCtrl = true;
+        })
+        .on('mousemove', '.hot-spot', function(event) {
+            event.preventDefault();
+            if (isScaleCtrl) {
+                _updateCPos(1 - event.offsetX / G_ctrl_bar_l );
+                _setScaleCtrl();
+            }
+        })
+        .on('click', '.hot-spot', function(event) {
+            isScaleCtrl = false;
+            _updateCPos( 1 - event.offsetX / G_ctrl_bar_l );
+            _setScaleCtrl();
+        })
+        .on('click', '.btn.add', function(event) {
+            cameraDistPersent -= 0.05;
+            if (cameraDistPersent < 0) {
+                cameraDistPersent = 0;
+            }
+            _updateCPos(cameraDistPersent);
+            _setScaleCtrl();
+        })
+        .on('click', '.btn.minus', function(event) {
+            cameraDistPersent += 0.05;
+            if (cameraDistPersent > 1) {
+                cameraDistPersent = 1;
+            }
+            _updateCPos(cameraDistPersent);
+            _setScaleCtrl();
+        })
+
+        $parent
+        .on('mousemove', function (event) {
+            var info = _getIntersectMesh(event);
+            if (info.id !== hoverId) {
+                _highlight(info.id, 'hover', info.position);
+                // $parent.trigger('lalako');
+            }
+        })
+        .on('mousedown', function () {
+            initMouse = mouse.clone();
+            mouseDownTime = new Date().getTime();
+        })
+        .on('mouseup', function () {
+             var info = _getIntersectMesh(event);
+
+            if (Math.abs(mouse.x - initMouse.x) < 0.02
+                && (new Date().getTime() - mouseDownTime) < 150) {
+                if (info.id !== chosenId) {
+                    _highlight(info.id, 'chosen', info.position, {text: 'sdjk'});
+                    // $parent.trigger('lalako');
+                }
+            }
+        })
+        .on('customize_texture', function (event, id, textureUrl) {
+            textureUrl = _corUrl(textureUrl);
+            if (materials[id]) {
+                texLoader.load(textureUrl, function (tex) {
+                    materials[id].map = tex;
+                    materials[id].needsUpdate = true;
+                    materials[id].map.needsUpdate = true;
+                });
+            }
+        })
+        .on('customize_color', function (event, id, colorHex) {
+            if (materials[id]) {
+                materials[id].color.set(colorHex);
+                materials[id].map = null;
+                materials[id].needsUpdate = true;
+                materials[id].map.needsUpdate = true;
+            }
+        })
+        .on('j_hover', function (event, id, text) {
+            if (id !== hoverId) {
+                var g = scene.getObjectByName(id);
+                var box = new THREE.Box3().setFromObject(g);
+                _highlight(id, 'hover', box.center(), {text: text});
+            }
+        })
+        .on('j_click', function (event, id, text) {
+            if (id !== hoverId) {
+                var g = scene.getObjectByName(id);
+                var box = new THREE.Box3().setFromObject(g);
+                _highlight(id, 'chosen', box.center(), {text: text});
+
+            }
+        });
+
+        $(window).resize(_resize);
+        _loadTexAndObj();
+        _setScaleCtrl();
+        _animate();
+
+        function _resize() {
+            wpWidth = $parent.width(),
+            wpHeight = $parent.height();
+
+            renderer.setSize( wpWidth, wpHeight);
+            renderer2.setSize( wpWidth, wpHeight );
+        }
+
+        function _loadTexAndObj() {
+            if (textureUrls.length > 0) {
+                texLoader.load(_corUrl(textureUrls[0]), function (tex) {
+                    textures[textureUrls.shift()] = tex;
+
+                    _loadTexAndObj();
+                })
+            } else {
+                _loadObj();
+            }
+        }
+
+        function _loadObj () {
+            if (objects.length < 1) {
+                var box,
+                    boxMax,
+                    material;
+
+                $loader.hide();
+
+                box = new THREE.Box3().setFromObject( group );
+                boxMax =Math.max(box.size().x,box.size().y, box.size().z);
+                G_scale = 1 / boxMax * G_init_ratio * G_space_size;
+                group.position.set(0,0,0);
+                group.scale.multiplyScalar( G_scale );
+
+                scene.add(group);
+            } else {
+                var objUrl = _corUrl(objects[0].objPath);
+
+                objLoader.load(objUrl, function (object) {
+                    var settings = objects[0],
+                        id = objects[0].materialId,
+                        g = new THREE.Group();
+
+                    object.traverse(function (child) {
+
+                        if (child instanceof THREE.Mesh) {
+                            if (!materials[id]) {
+                                initColor[id] = settings.colorHex;
+                                groupNames[id] = '未命名';
+
+                                materials[id] = child.material;
+                                materials[id].color.set(settings.colorHex);
+                                materials[id].transparent = settings.transparent || false;
+                                materials[id].materialId = id;
+                                materials[id].shading = THREE.SmoothShading;
+                                if (settings.textureUrl) {
+                                    materials[id].map = textures[settings.textureUrl];
+                                }
+                            }
+
+                            g.add(child);
+                        }
+                    });
+
+                    g.name = id;
+                    group.add(g);
+
+                    objects.shift();
+                    _loadObj();
+                });
+            }
+        }
+
+        function _getIntersectMesh (event) {
+            var intersects;
+            event.preventDefault();
+            mouse.x = ( event.offsetX / wpWidth ) * 2 - 1;
+            mouse.y = - ( event.offsetY / wpHeight ) * 2 + 1;
+
+            raycaster.setFromCamera( mouse, camera );
+            intersects = raycaster.intersectObjects( scene.children, true);
+            if ( intersects.length > 0 ) {
+                var tmp = intersects[0].object;
+                var id = tmp.material.materialId;
+                var g = scene.getObjectByName(id);
+                if (g) {
+                    box = new THREE.Box3().setFromObject(g);
+
+                    return {
+                        id: id,
+                        position: box.center()
+                    }
+                }
+            }
+            return {
+                id: undefined
+            }
+        }
+
+        function _highlight (id, type, position, opt) {
+            var color = {
+                    hover: '#3E82F7',
+                    chosen: '#3E82F7'
+                };
+
+            if (id && !materials[id]) {
+                return;
+            }
+            //color mesh
+            if (type === 'chosen') {
+                if (chosenId) {
+                    _removeOutline(chosenId);
+                    _removeTag(chosenId);
+                }
+                if (id) {
+                    _outlineGroup(id, color.chosen)
+                    _addTag({
+                        id: id,
+                        position: position,
+                        text: opt && opt.text,
+                        class: 'utag'
+                    });
+                }
+
+                chosenId = id;
+            }
+            if (type === 'hover') {
+                if (hoverId && hoverId !== chosenId) {
+                    _removeTag(hoverId);
+                }
+                if (id && id !== chosenId) {
+                    _addTag({
+                        id: id,
+                        position: position,
+                        text: opt && opt.text,
+                        class: 'utag'
+                    });
+                }
+
+                hoverId = id;
+            }
+        }
+
+        function _outlineGroup (id, color) {
+            if (scene.getObjectByName('outline_' + id)) {
+                return;
+            }
+            var g = scene.getObjectByName(id);
+            var outG = new THREE.Group();
+            outG.name = 'outline_' + id;
+
+            g.traverse(function (child) {
+                if (child instanceof THREE.Mesh) {
+                    var geom = child.geometry.clone();
+                    var outlineMat = new THREE.MeshBasicMaterial({ side: THREE.BackSide });
+                    outlineMat.color.set(color);
+                    var center = geom.center();
+                    var outlineMesh = new THREE.Mesh( geom, outlineMat);
+
+                    outlineMesh.scale.multiplyScalar(G_scale * 1.06);
+                    outlineMesh.position.set(-center.x * G_scale, -center.y * G_scale, -center.z * G_scale);
+
+                    outG.add(outlineMesh);
+                }
+            })
+            scene.add( outG );
+        }
+
+        function _removeOutline (id) {
+            var g = scene.getObjectByName('outline_' + id)
+            if (g) {
+                scene.remove(g);
+            }
+        }
+
+        function _addTag(opt) {
+            if (!opt || opt && (!opt.id)) {
+                return;
+            }
+            if (opt.text) {
+                groupNames[opt.id] = opt.text;
+            }
+            var g =  scene2.getObjectByName(opt.id);
+            if (g) {
+                g.element.innerHTML = groupNames[opt.id];
+                return;
+            }
+
+            var element = document.createElement('span');
+            element.classList.add(opt.class);
+            element.innerHTML = groupNames[opt.id];
+
+            var s = new THREE.CSS3DSprite( element );
+            s.scale.set(0.1,0.1, 0.1);
+            s.position.x = opt.position.x;
+            s.position.y = opt.position.y + 20;
+            s.position.z = opt.position.z;
+            s.scale.multiplyScalar(.6);
+            s.name = opt.id;
+
+            scene2.add( s );
+        }
+
+        function _removeTag(id) {
+            scene2.remove(scene2.getObjectByName(id));
+        }
+
+        function _setScaleCtrl (percent) {
+            if (!percent) {
+                var dist = _calcDistance(camera.position, scene.position)
+                cameraDistPersent = (dist - G_min_dist) / (G_max_dist - G_min_dist);
+            }
+            var value = (1 - cameraDistPersent) * G_ctrl_bar_l;
+
+            $scaleCtrl.find('.slider').css('left', 45 + value);
+            $scaleCtrl.find('.bar .fill').css('margin-left', value);
+        }
+
+        function _updateCPos (percent) {
+            cameraDistPersent = percent;
+            var dist = (G_max_dist - G_min_dist) * cameraDistPersent + G_min_dist;
+            var c = camera.position.clone();
+            var distNow = _calcDistance(c, scene.position);
+            c.multiplyScalar( dist/distNow);
+            camera.position.x = c.x;
+            camera.position.y = c.y;
+            camera.position.z = c.z;
+        }
+
+        function _corUrl(url) {
+            if (url.indexOf('.com') > -1) {
+                url = 'http://cc.kujiale.com' + url.slice(url.indexOf('.com') + 4);
+            }
+            return url;
+        }
+
+        function _calcDistance (v1, v2) {
+            var p = Math.pow
+            return Math.sqrt(p(v1.x - v2.x, 2) + p(v1.y - v2.y, 2) + p(v1.z - v2.z, 2));
+        }
+
+        function _animate () {
+            requestAnimationFrame( _animate );
+
+            renderer.render( scene, camera );
+            renderer2.render( scene2, camera );
+        }
+    }
+
+
+    var obj = {"objects":
+            [
+                {"transparent":true,"colorHex":"#959595","materialId":"533500bae4b0dd5b07fabae3","objName":"material1","objPath":"http://qhsmodel.oss.aliyuncs.com/a3d/UzUDqENnRUN_VgBBAAAA/model_qh_material1_simp.obj"},
+                {"transparent":true,"textureUrl":"http://qhsmodel.oss.aliyuncs.com/a3d/UzUDqENnRUN_VgBBAAAA/ad26f10eef4190b142c5990706fd028ce6915e.jpg","colorHex":"#959595","materialId":"533500bae4b0dd5b07fabae4","objName":"material2","objPath":"http://qhsmodel.oss.aliyuncs.com/a3d/UzUDqENnRUN_VgBBAAAA/model_qh_material2_simp.obj"}
+            ],
+            "obsModelId":"3FO4K4WLCMC9"
+        }
+
+    var a = new KObjLoader($('.out-wp'), obj);
+    setTimeout(function(){
+        $('.threejs').trigger('customize_texture', ['533500bae4b0dd5b07fabae3', 'obj/baking/11486456.jpg'])
+        // $('.threejs').trigger('customize_color', ['533500bae4b0dd5b07fabae3', '#987967'])
+
+    },1000)
+
+
+    </script>
+</body>
+</html>
